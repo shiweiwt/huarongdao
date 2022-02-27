@@ -2,7 +2,10 @@ package board
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 const (
@@ -93,10 +96,8 @@ func (m *Move) String() string {
 }
 
 type Board struct {
-	grids                    []*Piece
-	pieceMap                 map[*Piece]int8
-	emptyPiece0, emptyPiece1 int8 // grid index
-	moves                    []*Move
+	grids    []*Piece
+	pieceMap map[*Piece]int8
 }
 
 // NewBoard is board constructor
@@ -111,10 +112,12 @@ func (b *Board) Grids() []*Piece {
 	return b.grids
 }
 
+// gridIndex converts from grid coordinate to index
 func (b *Board) gridIndex(x, y int8) int8 {
 	return y*XGrids + x
 }
 
+// indexCoord converts grid index to coordinate
 func (b *Board) indexCoord(idx int8) Coord {
 	if idx < 0 || idx > TotalGrids {
 		panic(fmt.Sprintf("invalid index %d", idx))
@@ -197,8 +200,6 @@ func (b *Board) CanMovePiece(piece *Piece, x, y int8) bool {
 // MovePiece moves the piece in direction (up/down/left/right) specified in (x,y)
 func (b *Board) MovePiece(piece *Piece, x, y int8) *Board {
 	pos := b.GetPiecePosition(piece)
-	// keep record of the move to get to the next board
-	b.moves = append(b.moves, &Move{P: piece, CurX: pos.X, CurY: pos.Y, X: x, Y: y})
 
 	// set/move empty pieces
 	if x > 0 {
@@ -223,12 +224,13 @@ func (b *Board) MovePiece(piece *Piece, x, y int8) *Board {
 		}
 	}
 
+	// set the piece to right position
 	b.SetPiece(piece, Coord{X: pos.X + x, Y: pos.Y + y})
 	return b
 }
 
 // Clone creates a new board with the same state.
-// need this since BFS needs to remember all different states
+// used by BFS to remember all different states
 func (b *Board) Clone() *Board {
 	b2 := NewBoard()
 	for _, p := range AllPieces {
@@ -256,15 +258,36 @@ func (b *Board) String() string {
 	return strings.Join(s, ",")
 }
 
+func (b *Board) PrettyPrint() {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"0", "1", "2", "3"})
+	table.SetRowLine(true)
+	table.SetAutoMergeCells(true)
+	table.SetColumnColor(tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiYellowColor})
+
+	for i := 0; i < TotalGrids; i += XGrids {
+		row := make([]string, 0, XGrids)
+		for j := 0; j < XGrids; j++ {
+			row = append(row, b.grids[i+j].Name)
+		}
+		table.Append(row)
+	}
+	table.Render()
+}
+
 type Solution struct {
-	Moves []*Move
+	Moves       []*Move
+	EndingBoard *Board
 }
 
 // DumpMoves outputs the move history into a string for convenience
 func (s *Solution) DumpMoves() string {
 	ss := []string{}
 	for i, m := range s.Moves {
-		ss = append(ss, fmt.Sprintf("[%d] %s from pos:(%d,%d) move %s\n", i, m.P.Name, m.CurX, m.CurY, m.Dir()))
+		ss = append(ss, fmt.Sprintf("[%d] %s from pos:(%d,%d) move %s", i, m.P.Name, m.CurX, m.CurY, m.Dir()))
 	}
 	return strings.Join(ss, "\n")
 }

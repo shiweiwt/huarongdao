@@ -8,11 +8,14 @@ import (
 )
 
 // NewBFSSolver creates a solver which Breadth First Search to solve with minimal steps
-func NewBFSSolver() BoardSolver {
-	return &bfsSolver{}
+func NewBFSSolver(logVerbose bool) BoardSolver {
+	return &bfsSolver{
+		logVerbose: logVerbose,
+	}
 }
 
 type bfsSolver struct {
+	logVerbose bool
 }
 
 type bfsNode struct {
@@ -24,6 +27,7 @@ type bfsNode struct {
 type bfsBoardState [TotalGrids]PieceType
 
 // State converts the board state into a hashable byte array
+// pieces of the same PieceType can be swapped positions without changing state
 func (sv *bfsSolver) State(board *Board) bfsBoardState {
 	var s bfsBoardState
 	for i := 0; i < TotalGrids; i++ {
@@ -51,7 +55,6 @@ func (sv *bfsSolver) Solve(board *Board) (bool, *Solution) {
 	q.Enqueue(&bfsNode{board: board})
 	visited := map[bfsBoardState]bool{sv.State(board): true}
 
-	fmt.Printf("======\n")
 	boards := 1
 	var solved *bfsNode
 
@@ -89,12 +92,14 @@ func (sv *bfsSolver) Solve(board *Board) (bool, *Solution) {
 						newNode := bfsNode{board: nb, moves: moves}
 						q.Enqueue(&newNode)
 						boards++
-						if boards%1000 == 0 {
+						if sv.logVerbose && boards%1000 == 0 {
 							fmt.Printf("  -- searched boards %d\n", boards)
 						}
 						// fmt.Println("board: ", nb.String())
 						if nb.Solved() {
-							fmt.Printf("  -- searched total boards %d\n", boards)
+							if sv.logVerbose {
+								fmt.Printf("  -- searched total boards %d\n", boards)
+							}
 							solved = &newNode
 							break DONE
 						}
@@ -106,7 +111,8 @@ func (sv *bfsSolver) Solve(board *Board) (bool, *Solution) {
 
 	if solved != nil {
 		solution := Solution{
-			Moves: solved.moves,
+			Moves:       solved.moves,
+			EndingBoard: solved.board,
 		}
 		return true, &solution
 	}
