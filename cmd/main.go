@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"godoros.bitbucket.io/huarongdao/internal/board"
+	"github.com/shiweiwt/huarongdao/internal/board"
 )
 
 var logVerbose = flag.Bool("logverbose", false, "whether to enable verbose logging")

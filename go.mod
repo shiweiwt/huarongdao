@@ -1,4 +1,4 @@
-module godoros.bitbucket.io/huarongdao
+module github.com/shiweiwt/huarongdao
 
 go 1.17
 
